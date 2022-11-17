@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/yanana/gofuncount"
+	"io"
 	"log"
 	"os"
 )
@@ -45,6 +46,14 @@ func doMain() int {
 		return 1
 	}
 
+	format, err := gofuncount.ParseFormat(flagOutputFormat)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "invalid format: %q", flagOutputFormat)
+		return 2
+	}
+
+	formatter := gofuncount.FormatterOf(format)
+
 	conf := &gofuncount.Config{
 		IncludeTests: flagIncludeTests,
 	}
@@ -53,17 +62,21 @@ func doMain() int {
 	if err != nil {
 		log.Printf("error: %s", err)
 
-		return 2
-	}
-
-	out, err := output(counts, flagOutputFormat)
-	if err != nil {
-		log.Printf("error: %s", err)
-
 		return 3
 	}
 
-	fmt.Fprintln(os.Stdout, out)
+	reader, err := formatter.Format(counts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s", err)
+
+		return 4
+	}
+
+	if _, err := io.Copy(os.Stdout, reader); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s", err)
+
+		return 5
+	}
 
 	return 0
 }

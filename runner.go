@@ -53,7 +53,7 @@ func (cs Counts) Stats() map[string]*Stats {
 	return stats
 }
 
-func Run(root string, conf *Config) ([]CountInfo, error) {
+func Run(root string, conf *Config) (Counts, error) {
 	filter := func(fi fs.FileInfo) bool {
 		if fi.IsDir() {
 			return true
@@ -64,7 +64,7 @@ func Run(root string, conf *Config) ([]CountInfo, error) {
 		return !strings.HasSuffix(fi.Name(), "_test.go")
 	}
 
-	functions := make([]CountInfo, 0)
+	counts := make(Counts)
 
 	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
@@ -76,31 +76,27 @@ func Run(root string, conf *Config) ([]CountInfo, error) {
 		}
 
 		fset := token.NewFileSet()
-		fs, err := parseFilesInCurrentDir(fset, path, filter)
-		if err != nil {
+		if err := parseFilesInCurrentDir(fset, path, filter, counts); err != nil {
 			return err
 		}
-		functions = append(functions, fs...)
 
 		return nil
 	})
 
-	return functions, nil
+	return counts, nil
 }
 
-func parseFilesInCurrentDir(fset *token.FileSet, root string, filter func(fi fs.FileInfo) bool) ([]CountInfo, error) {
+func parseFilesInCurrentDir(fset *token.FileSet, root string, filter func(fi fs.FileInfo) bool, counts Counts) error {
 	pkgs, err := parser.ParseDir(fset, root, filter, 0)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	functions := make([]CountInfo, 0)
 
 	for name, pkg := range pkgs {
 		for _, file := range pkg.Files {
 			for _, d := range file.Decls {
 				if f, ok := d.(*ast.FuncDecl); ok {
-					functions = append(functions, CountInfo{
+					counts[pkg.Name] = append(counts[pkg.Name], &CountInfo{
 						Package:  name,
 						Name:     f.Name.Name,
 						FileName: fset.File(f.Pos()).Name(),
@@ -112,5 +108,5 @@ func parseFilesInCurrentDir(fset *token.FileSet, root string, filter func(fi fs.
 		}
 	}
 
-	return functions, nil
+	return nil
 }
