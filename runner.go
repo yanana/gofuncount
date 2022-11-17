@@ -38,6 +38,21 @@ func (f CountInfo) MarshalJSON() ([]byte, error) {
 	})
 }
 
+type Stats struct {
+	MeanLines                 int `json:"mean"`
+	MedianLines               int `json:"median"`
+	NinetyFivePercentileLines int `json:"95%ile"`
+}
+
+type Counts map[string][]*CountInfo
+
+func (cs Counts) Stats() map[string]*Stats {
+	var stats = make(map[string]*Stats)
+
+	// TODO: implement
+	return stats
+}
+
 func Run(root string, conf *Config) ([]CountInfo, error) {
 	filter := func(fi fs.FileInfo) bool {
 		if fi.IsDir() {

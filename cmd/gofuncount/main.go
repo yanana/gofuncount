@@ -87,3 +87,7 @@ func outputJSON(counts []gofuncount.CountInfo) (string, error) {
 
 	return string(j), nil
 }
+
+func outputStats(counts []gofuncount.CountInfo) (string, error) {
+	return "", nil
+}
