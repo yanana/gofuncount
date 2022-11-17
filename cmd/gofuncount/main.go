@@ -23,7 +23,7 @@ var (
 
 func initFlags() {
 	flag.BoolVar(&flagIncludeTests, "include-tests", false, "whether to include test files")
-	flag.StringVar(&flagOutputFormat, "output-format", "json", "output format")
+	flag.StringVar(&flagOutputFormat, "format", "json", "output format, either one of json or csv")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [-flag] [package]\n\n", os.Args[0])
