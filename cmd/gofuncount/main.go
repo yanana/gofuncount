@@ -21,14 +21,12 @@ var (
 )
 
 func initFlags() {
-	flag.BoolVar(&flagIncludeTests, "include-tests", false, "include test files")
+	flag.BoolVar(&flagIncludeTests, "include-tests", false, "whether to include test files")
 	flag.StringVar(&flagOutputFormat, "output-format", "json", "output format")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [-flag] [package]\n\n", os.Args[0])
 		fmt.Fprintln(os.Stderr, "Flags:")
-		fmt.Fprintln(os.Stderr, "  -include-tests")
-		fmt.Fprintln(os.Stderr, "  -output-format")
 		flag.PrintDefaults()
 	}
 }
