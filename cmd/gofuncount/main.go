@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/yanana/gofuncount"
@@ -19,11 +18,13 @@ func init() {
 var (
 	flagIncludeTests bool
 	flagOutputFormat string
+	flagOutputStats  bool
 )
 
 func initFlags() {
 	flag.BoolVar(&flagIncludeTests, "include-tests", false, "whether to include test files")
 	flag.StringVar(&flagOutputFormat, "format", "json", "output format, either one of json or csv")
+	flag.BoolVar(&flagOutputStats, "stats", false, "whether to output statistics")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [-flag] [package]\n\n", os.Args[0])
@@ -52,8 +53,6 @@ func doMain() int {
 		return 2
 	}
 
-	formatter := gofuncount.FormatterOf(format)
-
 	conf := &gofuncount.Config{
 		IncludeTests: flagIncludeTests,
 	}
@@ -65,7 +64,8 @@ func doMain() int {
 		return 3
 	}
 
-	reader, err := formatter.Format(counts)
+	formatter := gofuncount.FormatterOf(format)
+	reader, err := formatter.Format(counts, flagOutputStats)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s", err)
 
@@ -79,26 +79,4 @@ func doMain() int {
 	}
 
 	return 0
-}
-
-func output(counts []gofuncount.CountInfo, format string) (string, error) {
-	switch format {
-	case "json":
-		return outputJSON(counts)
-	default:
-		return "", fmt.Errorf("error: unknown output format: %s", flagOutputFormat)
-	}
-}
-
-func outputJSON(counts []gofuncount.CountInfo) (string, error) {
-	j, err := json.MarshalIndent(counts, "", "  ")
-	if err != nil {
-		return "", err
-	}
-
-	return string(j), nil
-}
-
-func outputStats(counts []gofuncount.CountInfo) (string, error) {
-	return "", nil
 }

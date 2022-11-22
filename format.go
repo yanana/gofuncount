@@ -13,7 +13,7 @@ type Format int8
 
 const (
 	FormatUnknown Format = iota - 1
-	FormatJSON
+	FormatJSON    Format = iota
 	FormatCSV
 )
 
@@ -67,7 +67,7 @@ func FormatterOf(f Format) Formatter {
 }
 
 type Formatter interface {
-	Format(Counts) (io.Reader, error)
+	Format(Counts, bool) (io.Reader, error)
 }
 
 var _ Formatter = (*JSONFormatter)(nil)
@@ -75,12 +75,16 @@ var _ Formatter = (*CSVFormatter)(nil)
 
 type JSONFormatter struct{}
 
-func (f *JSONFormatter) Format(cs Counts) (io.Reader, error) {
+func (f *JSONFormatter) Format(cs Counts, stats bool) (io.Reader, error) {
 	var b bytes.Buffer
 	e := json.NewEncoder(&b)
 	e.SetIndent("", "  ")
 
-	if err := e.Encode(cs); err != nil {
+	encodee := any(cs)
+	if stats {
+		encodee = cs.Stats()
+	}
+	if err := e.Encode(encodee); err != nil {
 		return nil, err
 	}
 
@@ -89,18 +93,16 @@ func (f *JSONFormatter) Format(cs Counts) (io.Reader, error) {
 
 type CSVFormatter struct{}
 
-func (f *CSVFormatter) Format(cs Counts) (io.Reader, error) {
+func (f *CSVFormatter) Format(cs Counts, stats bool) (io.Reader, error) {
 	var b bytes.Buffer
 	w := csv.NewWriter(&b)
 	w.UseCRLF = true
 
-	w.Write(cs.CSVHeader())
+	w.Write(cs.CSVHeader(stats))
 
-	for pkg, funcs := range cs {
+	for _, funcs := range cs {
 		for _, f := range funcs {
-			w.Write([]string{
-				pkg, f.Name, f.FileName, strconv.Itoa(f.StartsAt), strconv.Itoa(f.EndsAt), strconv.Itoa(f.Lines()),
-			})
+			w.Write(f.CSVRecord())
 		}
 	}
 	w.Flush()
@@ -108,8 +110,63 @@ func (f *CSVFormatter) Format(cs Counts) (io.Reader, error) {
 	return &b, nil
 }
 
-func (cs Counts) CSVHeader() []string {
-	var header = []string{"package", "functionName", "fileName", "startsAt", "endsAt", "lines"}
+func (cs Counts) WriteCSV(w *csv.Writer, stats bool) error {
+	w.Write(cs.CSVHeader(stats))
 
-	return header
+	if stats {
+		if err := cs.writeStatsCSV(w); err != nil {
+			return err
+		}
+	} else {
+		if err := cs.writeCSV(w); err != nil {
+			return err
+		}
+	}
+
+	w.Flush()
+
+	return w.Error()
+}
+
+func (cs Counts) writeCSV(w *csv.Writer) error {
+	for _, funcs := range cs {
+		for _, f := range funcs {
+			if err := w.Write(f.CSVRecord()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (cs Counts) writeStatsCSV(w *csv.Writer) error {
+	s := cs.Stats()
+	for pkg, as := range s {
+		if err := w.Write(as.CSVRecord(pkg)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Stats) CSVRecord(pkg string) []string {
+	return []string{
+		pkg,
+		strconv.FormatFloat(s.MeanLines, 'f', -1, 64),
+		strconv.FormatFloat(s.MedianLines, 'f', -1, 64),
+		strconv.FormatFloat(s.NinetyFivePercentileLines, 'f', -1, 64),
+		strconv.FormatFloat(s.NinetyNinePercentileLines, 'f', -1, 64)}
+}
+
+func (c *CountInfo) CSVRecord() []string {
+	return []string{c.Package, c.Name, c.FileName, strconv.Itoa(c.StartsAt), strconv.Itoa(c.EndsAt), strconv.Itoa(c.Lines())}
+}
+
+func (cs Counts) CSVHeader(stats bool) []string {
+	if stats {
+		return []string{"package", "mean", "median", "95%ile", "99%ile"}
+	}
+	return []string{"package", "functionName", "fileName", "startsAt", "endsAt", "lines"}
 }

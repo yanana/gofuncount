@@ -39,18 +39,35 @@ func (f CountInfo) MarshalJSON() ([]byte, error) {
 }
 
 type Stats struct {
-	MeanLines                 int `json:"mean"`
-	MedianLines               int `json:"median"`
-	NinetyFivePercentileLines int `json:"95%ile"`
+	MeanLines                 float64 `json:"mean"`
+	MedianLines               float64 `json:"median"`
+	NinetyFivePercentileLines float64 `json:"95%ile"`
+	NinetyNinePercentileLines float64 `json:"99%ile"`
 }
 
 type Counts map[string][]*CountInfo
 
 func (cs Counts) Stats() map[string]*Stats {
-	var stats = make(map[string]*Stats)
+	var statsPerPackage = make(map[string]*Stats, len(cs))
 
-	// TODO: implement
-	return stats
+	for pkg, counts := range cs {
+		ss := &Stats{}
+		statsPerPackage[pkg] = ss
+		lines := make([]int, 0, len(counts))
+		if len(counts) == 0 {
+			continue
+		}
+		for _, f := range counts {
+			lines = append(lines, f.Lines())
+		}
+		d := NewData(lines)
+		ss.MeanLines = d.Mean()
+		ss.MedianLines = d.Quantile(0.5)
+		ss.NinetyFivePercentileLines = d.Quantile(0.95)
+		ss.NinetyNinePercentileLines = d.Quantile(0.99)
+	}
+
+	return statsPerPackage
 }
 
 func Run(root string, conf *Config) (Counts, error) {
