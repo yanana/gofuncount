@@ -21,12 +21,12 @@ func NewData(raw interface{}) Data {
 	case []float64:
 		floats = t
 	case []uint:
-		floats = make([]float64, len(t))
+		floats = make([]float64, 0, len(t))
 		for _, v := range t {
 			floats = append(floats, float64(v))
 		}
 	case []int:
-		floats = make([]float64, len(t))
+		floats = make([]float64, 0, len(t))
 		for _, v := range t {
 			floats = append(floats, float64(v))
 		}
