@@ -80,11 +80,11 @@ func (f *JSONFormatter) Format(cs Counts, stats bool) (io.Reader, error) {
 	e := json.NewEncoder(&b)
 	e.SetIndent("", "  ")
 
-	encodee := any(cs)
+	obj := interface{}(cs)
 	if stats {
-		encodee = cs.Stats()
+		obj = cs.Stats()
 	}
-	if err := e.Encode(encodee); err != nil {
+	if err := e.Encode(obj); err != nil {
 		return nil, err
 	}
 

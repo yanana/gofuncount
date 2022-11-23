@@ -9,17 +9,37 @@ type Data struct {
 	floats []float64
 }
 
-func NewData[T float64 | int | uint](values []T) Data {
+// NewData creates a new Data object from a slice of float64, int, or uint.
+// If the input slice is not a slice of float64, int, or uint, the returned Data object will have a nil slice.
+// If the slice is empty, the returned Data object will have a nil slice.
+// If the slice is not empty, the returned Data object will have a copy of the slice.
+// The slice is sorted in ascending order.
+func NewData(raw interface{}) Data {
 	var floats []float64
 
-	for _, v := range values {
-		floats = append(floats, float64(v))
+	switch t := raw.(type) {
+	case []float64:
+		floats = t
+	case []uint:
+		floats = make([]float64, len(t))
+		for _, v := range t {
+			floats = append(floats, float64(v))
+		}
+	case []int:
+		floats = make([]float64, len(t))
+		for _, v := range t {
+			floats = append(floats, float64(v))
+		}
+	default:
+		return Data{
+			floats: []float64{},
+		}
 	}
 
 	sort.Float64s(floats)
 
 	return Data{
-		floats: floats,
+		floats,
 	}
 }
 
