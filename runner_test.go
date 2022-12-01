@@ -3,7 +3,6 @@ package gofuncount
 import (
 	"github.com/stretchr/testify/assert"
 	"math"
-	"reflect"
 	"testing"
 )
 
@@ -19,15 +18,51 @@ func TestRun(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "success",
+			name: "try to parse a non-existent file",
 			args: args{
-				root: "testdata/src",
+				root: "testdata/src/x/y.go",
+				conf: &Config{
+					IncludeTests: true,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "parse a file",
+			args: args{
+				root: "testdata/src/x/x.go",
 				conf: &Config{
 					IncludeTests: true,
 				},
 			},
 			want: map[string][]*CountInfo{
-				"main": []*CountInfo{{
+				"testdata/src/x": {{
+					Package:  "main",
+					Name:     "init",
+					FileName: "testdata/src/x/x.go",
+					StartsAt: 5,
+					EndsAt:   7,
+				},
+					{
+						Package:  "main",
+						Name:     "main",
+						FileName: "testdata/src/x/x.go",
+						StartsAt: 9,
+						EndsAt:   12,
+					},
+				},
+			},
+		},
+		{
+			name: "parse files in a directory",
+			args: args{
+				root: "testdata/src/x",
+				conf: &Config{
+					IncludeTests: true,
+				},
+			},
+			want: map[string][]*CountInfo{
+				"testdata/src/x": {{
 					Package:  "main",
 					Name:     "init",
 					FileName: "testdata/src/x/x.go",
@@ -48,14 +83,15 @@ func TestRun(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Run(tt.args.root, tt.args.conf)
+			runner := &Runner{
+				Conf: tt.args.conf,
+			}
+			got, err := runner.Run(tt.args.root)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Run() got = %+v, want %+v", got, tt.want)
-			}
+			assert.EqualValues(t, got, tt.want)
 		})
 	}
 }
@@ -180,7 +216,6 @@ func TestCounts(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 				tc.assert(t, tc.want, tc.cs.Stats())
-				//assert.EqualValues(t, tc.want, tc.cs.Stats())
 			})
 		}
 	})

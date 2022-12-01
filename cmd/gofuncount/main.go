@@ -27,7 +27,9 @@ func initFlags() {
 	flag.BoolVar(&flagOutputStats, "stats", false, "whether to output statistics")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [-flag] [package]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [-flag] target\n\n", os.Args[0])
+		fmt.Fprintln(os.Stderr, "Counts the number of functions in or of the given `target`.")
+		fmt.Fprintln(os.Stderr, "The `target` can be either a directory or a file.")
 		fmt.Fprintln(os.Stderr, "Flags:")
 		flag.PrintDefaults()
 	}
@@ -43,7 +45,6 @@ func doMain() int {
 
 	if len(args) == 0 {
 		flag.Usage()
-
 		return 1
 	}
 
@@ -57,10 +58,12 @@ func doMain() int {
 		IncludeTests: flagIncludeTests,
 	}
 
-	counts, err := gofuncount.Run(args[0], conf)
+	runner := &gofuncount.Runner{
+		Conf: conf,
+	}
+	counts, err := runner.Run(args[0])
 	if err != nil {
 		log.Printf("error: %s", err)
-
 		return 3
 	}
 
@@ -68,13 +71,11 @@ func doMain() int {
 	reader, err := formatter.Format(counts, flagOutputStats)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s", err)
-
 		return 4
 	}
 
 	if _, err := io.Copy(os.Stdout, reader); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s", err)
-
 		return 5
 	}
 

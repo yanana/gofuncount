@@ -100,9 +100,9 @@ func (f *CSVFormatter) Format(cs Counts, stats bool) (io.Reader, error) {
 
 	w.Write(cs.CSVHeader(stats))
 
-	for _, funcs := range cs {
+	for dir, funcs := range cs {
 		for _, f := range funcs {
-			w.Write(f.CSVRecord())
+			w.Write(f.CSVRecord(dir))
 		}
 	}
 	w.Flush()
@@ -129,9 +129,9 @@ func (cs Counts) WriteCSV(w *csv.Writer, stats bool) error {
 }
 
 func (cs Counts) writeCSV(w *csv.Writer) error {
-	for _, funcs := range cs {
+	for dir, funcs := range cs {
 		for _, f := range funcs {
-			if err := w.Write(f.CSVRecord()); err != nil {
+			if err := w.Write(f.CSVRecord(dir)); err != nil {
 				return err
 			}
 		}
@@ -151,22 +151,31 @@ func (cs Counts) writeStatsCSV(w *csv.Writer) error {
 	return nil
 }
 
-func (s *Stats) CSVRecord(pkg string) []string {
+func (s *Stats) CSVRecord(dir string) []string {
 	return []string{
-		pkg,
+		dir,
 		strconv.FormatFloat(s.MeanLines, 'f', -1, 64),
 		strconv.FormatFloat(s.MedianLines, 'f', -1, 64),
 		strconv.FormatFloat(s.NinetyFivePercentileLines, 'f', -1, 64),
-		strconv.FormatFloat(s.NinetyNinePercentileLines, 'f', -1, 64)}
+		strconv.FormatFloat(s.NinetyNinePercentileLines, 'f', -1, 64),
+	}
 }
 
-func (c *CountInfo) CSVRecord() []string {
-	return []string{c.Package, c.Name, c.FileName, strconv.Itoa(c.StartsAt), strconv.Itoa(c.EndsAt), strconv.Itoa(c.Lines())}
+func (ci *CountInfo) CSVRecord(dir string) []string {
+	return []string{
+		dir,
+		ci.Package,
+		ci.Name,
+		ci.FileName,
+		strconv.Itoa(ci.StartsAt),
+		strconv.Itoa(ci.EndsAt),
+		strconv.Itoa(ci.Lines()),
+	}
 }
 
 func (cs Counts) CSVHeader(stats bool) []string {
 	if stats {
-		return []string{"package", "mean", "median", "95%ile", "99%ile"}
+		return []string{"directory", "mean", "median", "95%ile", "99%ile"}
 	}
-	return []string{"package", "functionName", "fileName", "startsAt", "endsAt", "lines"}
+	return []string{"directory", "function_name", "file_name", "starts_at", "ends_at", "lines"}
 }
