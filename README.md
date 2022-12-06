@@ -18,3 +18,7 @@ Flags:
   -stats
     	whether to output statistics
 ```
+
+The `-format` flag chooses the format of the output. Defaults to JSON but CSV is also available.
+The `-include-tests` flag controls whether gofuncount counts test files (`*_test.go` files).
+The `-stats` flag is used to output the statistics of the couts, such as median or 90 percentile.
